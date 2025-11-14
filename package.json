@@ -4,13 +4,18 @@
   "version": "1.0.0",
   "type": "module",
   "main": "node_modules/expo/AppEntry.js",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
     "build": "expo build:web",
-    "serve": "node server.js"
+    "serve": "node server.js",
+    "preinstall": "npx only-allow npm"
   },
   "dependencies": {
     "@expo/webpack-config": "^19.0.0",

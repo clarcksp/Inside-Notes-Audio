@@ -3,9 +3,12 @@ FROM node:18-alpine AS build
 
 WORKDIR /app
 
-# Copy package files and install dependencies
+# Install build dependencies
+RUN apk add --no-cache python3 make gcc g++
+
+# Copy package files and install ALL dependencies
 COPY package*.json ./
-RUN npm install
+RUN npm ci --include=dev
 
 # Copy entire project
 COPY . .
@@ -18,9 +21,9 @@ FROM node:18-alpine AS production
 
 WORKDIR /app
 
-# Copy only production dependencies
+# Install only production dependencies
 COPY package*.json ./
-RUN npm install --production
+RUN npm ci --omit=dev
 
 # Copy built artifacts from build stage
 COPY --from=build /app/dist ./dist
