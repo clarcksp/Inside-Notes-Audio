@@ -1,53 +1,48 @@
 # Build stage
 FROM node:18-alpine AS build
 
-# Set working directory
 WORKDIR /app
 
-# Install build dependencies
+# Instalar dependências do sistema necessárias para build
 RUN apk add --no-cache python3 make gcc g++ curl
 
-# Copy package files and .npmrc
+# Copiar package.json, package-lock.json e .npmrc para cache de dependências
 COPY package*.json .npmrc ./
 
-# Debug: show package.json and .npmrc contents
-RUN echo "===== package.json =====" && cat package.json && echo "===== .npmrc =====" && cat .npmrc
+# Debug: mostrar conteúdo dos arquivos importantes
+RUN echo "===== package.json =====" && cat package.json && echo "===== package-lock.json =====" && cat package-lock.json && echo "===== .npmrc =====" && cat .npmrc
 
-# Use npm ci if package-lock.json exists, else fallback to npm install
+# Instalar dependências com npm ci se package-lock.json existir, senão fallback para npm install
 RUN if [ -f package-lock.json ]; then \
       npm ci --legacy-peer-deps; \
     else \
       npm install --legacy-peer-deps; \
     fi
 
-# Copy entire project
+# Copiar todo o código fonte
 COPY . .
 
-# Build the application
+# Rodar build da aplicação
 RUN npm run build
 
-# Production stage
+# Produção
 FROM node:18-alpine AS production
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files and .npmrc
+# Copiar package.json, package-lock.json e .npmrc para produção
 COPY --from=build /app/package*.json /app/.npmrc ./
 
-# Install only production dependencies
+# Instalar só dependências de produção
 RUN npm install --omit=dev --legacy-peer-deps
 
-# Copy built artifacts from build stage
+# Copiar build e server.js
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/server.js ./server.js
 
-# Expose the application port
 EXPOSE 3001
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
 
-# Start the server
 CMD ["node", "server.js"]
