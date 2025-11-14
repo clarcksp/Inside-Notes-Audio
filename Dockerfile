@@ -10,8 +10,15 @@ RUN apk add --no-cache python3 make gcc g++ curl
 # Copy package files and .npmrc
 COPY package*.json .npmrc ./
 
-# Install dependencies with legacy peer deps
-RUN npm install --legacy-peer-deps --verbose
+# Debug: show package.json and .npmrc contents
+RUN echo "===== package.json =====" && cat package.json && echo "===== .npmrc =====" && cat .npmrc
+
+# Use npm ci if package-lock.json exists, else fallback to npm install
+RUN if [ -f package-lock.json ]; then \
+      npm ci --legacy-peer-deps; \
+    else \
+      npm install --legacy-peer-deps; \
+    fi
 
 # Copy entire project
 COPY . .
@@ -29,7 +36,7 @@ WORKDIR /app
 COPY --from=build /app/package*.json /app/.npmrc ./
 
 # Install only production dependencies
-RUN npm install --omit=dev --legacy-peer-deps --verbose
+RUN npm install --omit=dev --legacy-peer-deps
 
 # Copy built artifacts from build stage
 COPY --from=build /app/dist ./dist
