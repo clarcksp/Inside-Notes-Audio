@@ -1,14 +1,21 @@
 # Build stage
 FROM node:18-alpine AS build
 
+# Set working directory
 WORKDIR /app
 
 # Install build dependencies
-RUN apk add --no-cache python3 make gcc g++
+RUN apk add --no-cache python3 make gcc g++ curl
 
-# Copy package files and install ALL dependencies
-COPY package*.json ./
-RUN npm ci --include=dev
+# Copy package files
+COPY package*.json .npmrc ./
+
+# Configure npm
+RUN npm config set fetch-retry-maxtimeout 600000 && \
+    npm config set network-timeout 600000
+
+# Install dependencies with legacy peer deps
+RUN npm install --legacy-peer-deps --verbose
 
 # Copy entire project
 COPY . .
@@ -19,11 +26,14 @@ RUN npm run build
 # Production stage
 FROM node:18-alpine AS production
 
+# Set working directory
 WORKDIR /app
 
-# Install only production dependencies
-COPY package*.json ./
-RUN npm ci --omit=dev
+# Copy package files and .npmrc
+COPY --from=build /app/package*.json /app/.npmrc ./
+
+# Install production dependencies
+RUN npm install --omit=dev --legacy-peer-deps --verbose
 
 # Copy built artifacts from build stage
 COPY --from=build /app/dist ./dist

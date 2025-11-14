@@ -1,32 +1,38 @@
 import express from 'express';
-import path from 'path';
-import dotenv from 'dotenv';
-
-// Load environment variables
-dotenv.config();
+import logger from './logging.config.js';
 
 const app = express();
-const port = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3001;
 
-const distPath = path.resolve(process.cwd(), 'dist');
-
-// Serve static files
-app.use(express.static(distPath));
+// Middleware for logging requests
+app.use((req, res, next) => {
+  logger.info(`${req.method} ${req.url}`);
+  next();
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'healthy', 
-    timestamp: new Date().toISOString() 
-  });
+  const healthcheck = {
+    uptime: process.uptime(),
+    message: 'OK',
+    timestamp: Date.now()
+  };
+  
+  try {
+    res.send(healthcheck);
+  } catch (error) {
+    logger.error('Health check failed', error);
+    res.status(503).send();
+  }
 });
 
-// Catch-all route to serve index.html
-app.get('*', (req, res) => {
-  res.sendFile(path.join(distPath, 'index.html'));
+// Error handling middleware
+app.use((err, req, res, next) => {
+  logger.error(err.stack);
+  res.status(500).send('Something broke!');
 });
 
 // Start server
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server running on http://0.0.0.0:${port}`);
+app.listen(PORT, () => {
+  logger.info(`Server running on port ${PORT}`);
 });
