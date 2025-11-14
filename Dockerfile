@@ -10,11 +10,6 @@ RUN apk add --no-cache python3 make gcc g++ curl
 # Copy package files and .npmrc
 COPY package*.json .npmrc ./
 
-# Configure npm via .npmrc instead of command line
-RUN npm config set fetch-retry-maxtimeout 600000 \
-    && npm config set timeout 600000 \
-    && npm config set registry https://registry.npmjs.org/
-
 # Install dependencies with legacy peer deps
 RUN npm install --legacy-peer-deps --verbose
 
@@ -32,11 +27,6 @@ WORKDIR /app
 
 # Copy package files and .npmrc
 COPY --from=build /app/package*.json /app/.npmrc ./
-
-# Configure npm via .npmrc
-RUN npm config set fetch-retry-maxtimeout 600000 \
-    && npm config set timeout 600000 \
-    && npm config set registry https://registry.npmjs.org/
 
 # Install only production dependencies
 RUN npm install --omit=dev --legacy-peer-deps --verbose
